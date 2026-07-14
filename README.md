@@ -16,7 +16,7 @@ Apache Doris 生产排障 **Skill + 诊断 CLI + 案例库**。
 | `references/02-source-map.md` | 1 | 现象 → 源码映射（含版本标注 + 升级风险表） |
 | `python/doris_debug/` | 7 模块 | 可运行诊断 CLI（audit / metrics / wal / log-grep / patterns） |
 | `guides/` | 2 | 跨模块级联排障 |
-| `tests/` | 5 文件 | **57** 个单元测试 |
+| `tests/` | 1 文件 | **16** 个正则签名验证测试 |
 
 ## Skills 一览
 
@@ -125,7 +125,7 @@ export PYTHONPATH=$PWD/python
 
 ```bash
 PYTHONPATH=python python3 -m pytest tests/ -v
-# 57 passed
+# 16 passed — 验证 log-grep 签名模式能正确匹配真实日志
 ```
 
 ## License
