@@ -4,7 +4,7 @@ description: >
   Use for Apache Doris slow/hanging/timeout queries. Covers FE planner (Nereids timeout),
   BE Profile bottlenecks, and Exchange WaitForData / brpc E1008 on port 8060.
   Session vars: enable_profile, query_timeout, nereids_timeout_second.
-version: 0.1.0
+version: 0.2.0
 category: query
 ---
 
@@ -34,7 +34,31 @@ SET enable_profile = true;
 
 Planner mitigation (session only): `SET disable_join_reorder=true;` for fat ETL joins; fix stats with `ANALYZE`.
 
-Profile interpretation: prefer active time over Wait\*; companion skill `doris-profile-reader` if available.
+## Cause C — BE compute (scan/join/spill)
+
+When Profile shows high active ExecTime (not Wait\*), route to **doris-profile-reader** for deep Profile analysis:
+
+> **Skill routing**: If `doris-profile-reader` is available, invoke it with the query's Profile to identify which operator (scan/join/agg/spill) dominates. Key indicators to pass:
+> - `ActiveTime` per operator
+> - `RowsRead` / `ScanBytes` for scan operators
+> - `SpillDataSize` if disk spill occurred
+> - `JoinType` + `JoinRows` for join operators
+
+Without profile-reader, check directly:
+```bash
+# Get the Profile text
+curl -s "http://$FE:8030/api/query_profile?query_id=$QID"
+```
+
+Key Profile counters for Cause C:
+| Counter | Meaning | Threshold |
+|---------|---------|-----------|
+| `ScannerGetBlockTime` | Time reading from storage | > 50% of ExecTime → IO bound |
+| `SpillDataSize` | Data spilled to disk | > 0 → memory pressure, check `enable_spill` |
+| `JoinProbeTime` | Hash join probe wall time | > 30% → check join order / type |
+| `RowsRead` / `ScanBytes` | Scan volume | > 1B rows → check partition pruning |
+
+Profile interpretation: prefer active time over Wait\*.
 
 ## Cause D — Exchange / brpc
 

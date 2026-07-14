@@ -26,13 +26,43 @@ install_claude() {
 name: doris-debug
 description: >
   Apache Doris production diagnostics router. Use for slow queries, import/WAL,
-  compaction -235, Exchange/brpc issues, MV, tablet, lakehouse, cloud. Routes to
-  doris-debug-* skills and shared source-mapped references.
+  compaction -235, Exchange/brpc issues, MV, tablet, lakehouse, cloud, deployment,
+  resource isolation. Routes to doris-debug-* skills and shared source-mapped references.
+version: 0.2.0
 ---
 # Doris Debug Router
+
+## Quick route
+
+| Symptom | Skill |
+|---------|-------|
+| Slow / timeout query | `doris-debug-query` |
+| Stream Load / WAL pile-up | `doris-debug-import` |
+| -235 / too many versions | `doris-debug-compaction` |
+| OOM / crash / false Alive | `doris-debug-node` |
+| MV not refreshing / rewrite miss | `doris-debug-materialized-view` |
+| Tablet replica / clone / disk skew | `doris-debug-tablet` |
+| Startup / port / priority_networks | `doris-debug-deployment` |
+| Hive/Iceberg/Paimon catalog | `doris-debug-data-lake` |
+| Workload Group / queue | `doris-debug-resource-isolation` |
+| Cloud / storage-compute separation | `doris-debug-cloud` |
+
+## Workflow
+
 1. Read `../doris-debug-shared/references/01-common-commands.md` and `02-source-map.md`.
-2. Pick skill: query | import | compaction | node | materialized-view | tablet | deployment | data-lake | resource-isolation | cloud.
-3. Prefer CLI: `PYTHONPATH=<repo>/python python3 -m doris_debug ...`
+2. Pick the target skill from the table above.
+3. Use the CLI: `PYTHONPATH=<repo>/python python3 -m doris_debug ...`
+4. For deep Profile analysis of slow queries, also invoke `doris-profile-reader` if available.
+
+## CLI tools
+
+```bash
+./scripts/doris-debug audit-topk fe/log/fe.audit.log -k 20 --min-ms 5000
+./scripts/doris-debug be-metrics --be http://$BE:8040 --grep compaction --warn
+./scripts/doris-debug be-metrics --fe http://$FE:8030
+./scripts/doris-debug wal-du /path/to/be/storage
+./scripts/doris-debug log-grep be/log --query-id "$QID" --pack exchange --correlate
+```
 EOF
   for s in "${SKILLS[@]}"; do
     mkdir -p "$dest/doris-debug-$s/references"
